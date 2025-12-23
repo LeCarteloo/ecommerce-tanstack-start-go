@@ -1,0 +1,21 @@
+# IDE specific
+.idea/
+.vscode/
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+go.work
+go.work.sum
+.env
+# Web app
+node_modules/
+dist/
+build/
