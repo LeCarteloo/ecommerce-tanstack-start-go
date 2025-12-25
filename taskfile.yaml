@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+tasks:
+  core:build:
+    desc: Build the Go application
+    cmds:
+      - go build ./apps/core/cmd
+
+  core:run:
+    desc: Run the Go application
+    cmds:
+      - go run ./apps/core/cmd
