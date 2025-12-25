@@ -1,0 +1,4 @@
+export GOOSE_DBSTRING="host=localhost user=postgres password=postgres export dbname=ecommerce sslmode=disable"
+export GOOSE_DRIVER="postgres"
+export GOOSE_MIGRATION_DIR="./apps/core/migrations"
+export ENV="dev"

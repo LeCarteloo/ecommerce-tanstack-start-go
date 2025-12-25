@@ -13,6 +13,7 @@ coverage.*
 *.coverprofile
 profile.cov
 .env
+.envrc
 # Web app
 node_modules/
 dist/

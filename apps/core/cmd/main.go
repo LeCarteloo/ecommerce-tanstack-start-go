@@ -11,7 +11,7 @@ import (
 
 func main() {
 	dbConfig := dbConfig{
-		dsn: env.GetString("GOOSE_DBSTRING", "host=localhost user=postgres password=postgres dbname=ecommerce sslmode=disable"),
+		dsn: env.GetString("GOOSE_DBSTRING"),
 	}
 
 	ctx := context.Background()
