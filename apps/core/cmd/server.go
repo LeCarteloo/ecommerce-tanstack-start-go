@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	customMiddleware "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
@@ -29,7 +30,7 @@ func (app *application) mount() http.Handler {
 
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
-	router.Use(middleware.DefaultLogger)
+	router.Use(customMiddleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Timeout(time.Minute))
 
