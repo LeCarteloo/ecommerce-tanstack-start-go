@@ -1,6 +1,7 @@
 # IDE specific
 .idea/
 .vscode/
+
 # Go specific
 *.exe
 *.exe~
@@ -14,7 +15,10 @@ coverage.*
 profile.cov
 .env
 .envrc
+
 # Web app
 node_modules/
 dist/
 build/
+
+bru-collection

@@ -7,7 +7,12 @@ tasks:
     cmds:
       - go build ./apps/core/cmd
 
-  core:run:
-    desc: Run the Go application
+  core:up:
+    aliases: [core:start, core:run]
+    desc: Start the application with Docker Compose and run the Go application
+    preconditions:
+      - sh: docker info
+        msg: "Docker daemon is not running. Please start Docker."
     cmds:
+      - docker-compose up -d
       - go run ./apps/core/cmd
