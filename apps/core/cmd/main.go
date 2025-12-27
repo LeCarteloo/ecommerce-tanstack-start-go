@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	setupLogger()
+
 	dbConfig := dbConfig{
 		dsn: env.GetString("GOOSE_DBSTRING"),
 	}
@@ -30,4 +32,20 @@ func main() {
 	}
 
 	app.run(app.mount())
+}
+
+func setupLogger() {
+	var handler slog.Handler
+
+	if env.GetString("ENV") == "prod" {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})
+	}
+
+	slog.SetDefault(slog.New(handler))
 }
