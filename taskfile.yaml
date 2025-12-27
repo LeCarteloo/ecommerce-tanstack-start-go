@@ -16,3 +16,33 @@ tasks:
     cmds:
       - docker-compose up -d
       - go run ./apps/core/cmd
+
+  migration:create:
+    aliases: [migrate:create]
+    desc: Create a new migration file with goose
+    dir: ./apps/core/migrations
+    cmds:
+      - goose -s create {{.NAME}} sql
+    requires:
+      vars: [NAME]
+
+  migration:up:
+    aliases: [migration:start, migration:run]
+    desc: Run goose migrations up
+    preconditions:
+      - sh: docker ps -q --filter "name=postgres" --filter "status=running"
+        msg: "Postgres container is not running or not healthy. Run 'task up' first."
+    cmds:
+      - goose status
+      - task: migration:confirm
+  migration:confirm:
+    internal: true
+    prompt: "Are you sure you want to apply migrations?"
+    cmds:
+      - goose up
+
+  sqlc:generate:
+    aliases: [sqlc:gen]
+    desc: Generate Go code from SQL queries using sqlc
+    cmds:
+      - sqlc generate
