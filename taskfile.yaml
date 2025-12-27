@@ -2,6 +2,7 @@
 version: "3"
 
 tasks:
+  # Core
   core:build:
     desc: Build the Go application
     cmds:
@@ -17,6 +18,13 @@ tasks:
       - docker-compose up -d
       - go run ./apps/core/cmd
 
+  core:test:
+    aliases: [core:unit]
+    desc: Run tests for the Go application
+    cmds:
+      - go test ./apps/core/...
+
+  # DB
   migration:create:
     aliases: [migrate:create]
     desc: Create a new migration file with goose
