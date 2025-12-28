@@ -2,10 +2,11 @@ package users
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/apperrors"
-	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/json"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/respond"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -25,20 +26,24 @@ func (h *handler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 
 	var userId pgtype.UUID
 	if err := userId.Scan(userIdParam); err != nil {
-		http.Error(w, apperrors.ErrInvalidIdFormat.Error(), http.StatusBadRequest)
+		respond.WriteError(w, http.StatusBadRequest, apperrors.ErrInvalidIdFormat.Error())
 		return
 	}
 
 	user, err := h.service.GetUserByID(r.Context(), userId)
 	if err != nil {
 		if errors.Is(err, apperrors.ErrUserNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			respond.WriteError(w, http.StatusNotFound, err.Error())
 			return
 		}
 
-		http.Error(w, apperrors.ErrUnexpected.Error(), http.StatusInternalServerError)
+		slog.Error("get user by id: unexpected failure",
+			"user_id", userId.String(),
+			"error", err,
+		)
+		respond.WriteError(w, http.StatusInternalServerError, apperrors.ErrUnexpected.Error())
 		return
 	}
 
-	json.Write(w, http.StatusOK, user)
+	respond.Write(w, http.StatusOK, user)
 }

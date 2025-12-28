@@ -10,10 +10,12 @@ import (
 	repo "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/adapters/postgresql/sqlc"
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/api/users/mocks"
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/apperrors"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/respond"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandlerGetUserByID(t *testing.T) {
@@ -59,7 +61,7 @@ func TestHandlerGetUserByID(t *testing.T) {
 
 		var response repo.GetUserByIDRow
 		err := json.NewDecoder(rec.Body).Decode(&response)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.EqualValues(t, expectedUser, response)
 
 		mockService.AssertExpectations(t)
@@ -73,8 +75,11 @@ func TestHandlerGetUserByID(t *testing.T) {
 
 		r.ServeHTTP(rec, req)
 
+		var response respond.ErrorResponse
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Contains(t, rec.Body.String(), apperrors.ErrInvalidIdFormat.Error())
+		assert.Equal(t, response.Message, apperrors.ErrInvalidIdFormat.Error())
 
 		mockService.AssertNotCalled(t, "GetUserByID", mock.Anything, mock.Anything)
 	})
@@ -89,8 +94,11 @@ func TestHandlerGetUserByID(t *testing.T) {
 
 		r.ServeHTTP(rec, req)
 
+		var response respond.ErrorResponse
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		assert.Contains(t, rec.Body.String(), apperrors.ErrUserNotFound.Error())
+		assert.Contains(t, response.Message, apperrors.ErrUserNotFound.Error())
 	})
 
 	t.Run("returns 500 and error message if there is unexpected error", func(t *testing.T) {
@@ -103,7 +111,10 @@ func TestHandlerGetUserByID(t *testing.T) {
 
 		r.ServeHTTP(rec, req)
 
+		var response respond.ErrorResponse
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		assert.Contains(t, rec.Body.String(), apperrors.ErrUnexpected.Error())
+		assert.Contains(t, response.Message, apperrors.ErrUnexpected.Error())
 	})
 }
