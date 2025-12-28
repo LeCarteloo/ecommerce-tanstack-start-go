@@ -13,10 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetUserByID(t *testing.T) {
+func TestServiceGetUserByID(t *testing.T) {
 	ctx := context.Background()
 	userID := pgtype.UUID{
 		Bytes: [16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		Valid: true,
 	}
 	mockRepo := new(mocks.MockQuerier)
 	userService := NewService(mockRepo)
@@ -38,6 +39,8 @@ func TestGetUserByID(t *testing.T) {
 		if assert.NotNil(t, user) {
 			assert.EqualValues(t, expectedUser, user)
 		}
+
+		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return not found error if repo returns no rows", func(t *testing.T) {
@@ -49,6 +52,8 @@ func TestGetUserByID(t *testing.T) {
 		user, err := userService.GetUserByID(ctx, userID)
 		assert.ErrorIs(t, err, apperrors.ErrUserNotFound)
 		assert.EqualValues(t, repo.GetUserByIDRow{}, user)
+
+		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when repo fails", func(t *testing.T) {
@@ -61,5 +66,7 @@ func TestGetUserByID(t *testing.T) {
 		user, err := userService.GetUserByID(ctx, userID)
 		assert.ErrorIs(t, err, dbErr)
 		assert.EqualValues(t, repo.GetUserByIDRow{}, user)
+
+		mockRepo.AssertExpectations(t)
 	})
 }

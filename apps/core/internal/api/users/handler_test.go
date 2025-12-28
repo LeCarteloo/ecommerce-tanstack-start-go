@@ -1,0 +1,74 @@
+package users
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	repo "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/adapters/postgresql/sqlc"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/api/users/mocks"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/apperrors"
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func TestHandlerGetUserByID(t *testing.T) {
+	userID := pgtype.UUID{
+		Bytes: [16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		Valid: true,
+	}
+
+	t.Run("returns 200 and user JSON when user exists", func(t *testing.T) {
+		expectedUser := repo.GetUserByIDRow{
+			ID:        userID,
+			Username:  "user",
+			Email:     "",
+			Role:      "user",
+			CreatedAt: pgtype.Timestamptz{},
+		}
+
+		mockService := new(mocks.MockUserService)
+		userHandler := NewHandler(mockService)
+
+		r := chi.NewRouter()
+		r.Get("/users/{userId}", userHandler.GetUserByID)
+
+		mockService.On("GetUserByID", mock.Anything, userID).Return(expectedUser, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/users/"+userID.String(), nil)
+		rec := httptest.NewRecorder()
+
+		r.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+
+		var response repo.GetUserByIDRow
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedUser, response)
+
+		mockService.AssertExpectations(t)
+	})
+
+	t.Run("returns 400 and error message for invalid userId format", func(t *testing.T) {
+		mockService := new(mocks.MockUserService)
+		userHandler := NewHandler(mockService)
+
+		r := chi.NewRouter()
+		r.Get("/users/{userId}", userHandler.GetUserByID)
+
+		req := httptest.NewRequest(http.MethodGet, "/users/invalid-uuid", nil)
+		rec := httptest.NewRecorder()
+
+		r.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Contains(t, rec.Body.String(), apperrors.ErrInvalidIdFormat.Error())
+
+		mockService.AssertNotCalled(t, "GetUserByID", mock.Anything, mock.Anything)
+	})
+}

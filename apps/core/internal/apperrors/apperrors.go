@@ -2,4 +2,7 @@ package apperrors
 
 import "errors"
 
-var ErrUserNotFound = errors.New("user not found")
+var (
+	ErrUserNotFound    = errors.New("user not found")
+	ErrInvalidIdFormat = errors.New("invalid id format")
+)

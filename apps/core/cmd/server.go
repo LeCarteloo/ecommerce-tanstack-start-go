@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	repo "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/adapters/postgresql/sqlc"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/api/users"
 	customMiddleware "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -34,9 +36,15 @@ func (app *application) mount() http.Handler {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Timeout(time.Minute))
 
+	sqlcRepo := repo.New(app.dbConn)
+
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
+
+	usersService := users.NewService(sqlcRepo)
+	usersHandler := users.NewHandler(usersService)
+	router.Get("/users/{userId}", usersHandler.GetUserByID)
 
 	return router
 }
