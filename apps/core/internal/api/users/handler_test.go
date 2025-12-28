@@ -2,6 +2,7 @@ package users
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,6 +21,20 @@ func TestHandlerGetUserByID(t *testing.T) {
 		Bytes: [16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
 		Valid: true,
 	}
+	missingUserID := pgtype.UUID{
+		Bytes: [16]byte{0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		Valid: true,
+	}
+
+	setup := func() (*chi.Mux, *mocks.MockUserService) {
+		mockService := new(mocks.MockUserService)
+		userHandler := NewHandler(mockService)
+
+		r := chi.NewRouter()
+		r.Get("/users/{userId}", userHandler.GetUserByID)
+
+		return r, mockService
+	}
 
 	t.Run("returns 200 and user JSON when user exists", func(t *testing.T) {
 		expectedUser := repo.GetUserByIDRow{
@@ -30,11 +45,7 @@ func TestHandlerGetUserByID(t *testing.T) {
 			CreatedAt: pgtype.Timestamptz{},
 		}
 
-		mockService := new(mocks.MockUserService)
-		userHandler := NewHandler(mockService)
-
-		r := chi.NewRouter()
-		r.Get("/users/{userId}", userHandler.GetUserByID)
+		r, mockService := setup()
 
 		mockService.On("GetUserByID", mock.Anything, userID).Return(expectedUser, nil)
 
@@ -55,11 +66,7 @@ func TestHandlerGetUserByID(t *testing.T) {
 	})
 
 	t.Run("returns 400 and error message for invalid userId format", func(t *testing.T) {
-		mockService := new(mocks.MockUserService)
-		userHandler := NewHandler(mockService)
-
-		r := chi.NewRouter()
-		r.Get("/users/{userId}", userHandler.GetUserByID)
+		r, mockService := setup()
 
 		req := httptest.NewRequest(http.MethodGet, "/users/invalid-uuid", nil)
 		rec := httptest.NewRecorder()
@@ -70,5 +77,33 @@ func TestHandlerGetUserByID(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), apperrors.ErrInvalidIdFormat.Error())
 
 		mockService.AssertNotCalled(t, "GetUserByID", mock.Anything, mock.Anything)
+	})
+
+	t.Run("returns 404 and error message if user does not exist", func(t *testing.T) {
+		r, mockService := setup()
+
+		mockService.On("GetUserByID", mock.Anything, missingUserID).Return(repo.GetUserByIDRow{}, apperrors.ErrUserNotFound)
+
+		req := httptest.NewRequest(http.MethodGet, "/users/"+missingUserID.String(), nil)
+		rec := httptest.NewRecorder()
+
+		r.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+		assert.Contains(t, rec.Body.String(), apperrors.ErrUserNotFound.Error())
+	})
+
+	t.Run("returns 500 and error message if there is unexpected error", func(t *testing.T) {
+		r, mockService := setup()
+
+		mockService.On("GetUserByID", mock.Anything, userID).Return(repo.GetUserByIDRow{}, errors.New("database error"))
+
+		req := httptest.NewRequest(http.MethodGet, "/users/"+userID.String(), nil)
+		rec := httptest.NewRecorder()
+
+		r.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		assert.Contains(t, rec.Body.String(), apperrors.ErrUnexpected.Error())
 	})
 }

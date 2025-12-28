@@ -1,6 +1,7 @@
 package users
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/apperrors"
@@ -28,7 +29,16 @@ func (h *handler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, _ := h.service.GetUserByID(r.Context(), userId)
+	user, err := h.service.GetUserByID(r.Context(), userId)
+	if err != nil {
+		if errors.Is(err, apperrors.ErrUserNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, apperrors.ErrUnexpected.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	json.Write(w, http.StatusOK, user)
 }
