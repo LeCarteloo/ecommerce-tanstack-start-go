@@ -44,3 +44,43 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (GetUserByIDR
 	)
 	return i, err
 }
+
+const registerUser = `-- name: RegisterUser :one
+INSERT INTO users
+    (username, email, password, role)
+VALUES
+    ($1, $2, $3, 'user')
+RETURNING
+    id,
+    username,
+    email,
+    role,
+    created_at
+`
+
+type RegisterUserParams struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterUserRow struct {
+	ID        pgtype.UUID        `json:"id"`
+	Username  string             `json:"username"`
+	Email     string             `json:"email"`
+	Role      string             `json:"role"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) (RegisterUserRow, error) {
+	row := q.db.QueryRow(ctx, registerUser, arg.Username, arg.Email, arg.Password)
+	var i RegisterUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Role,
+		&i.CreatedAt,
+	)
+	return i, err
+}

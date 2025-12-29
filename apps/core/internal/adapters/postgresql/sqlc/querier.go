@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	GetUserByID(ctx context.Context, id pgtype.UUID) (GetUserByIDRow, error)
+	RegisterUser(ctx context.Context, arg RegisterUserParams) (RegisterUserRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

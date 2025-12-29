@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	repo "github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/adapters/postgresql/sqlc"
+	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/api/users/dto"
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/api/users/mocks"
 	"github.com/LeCarteloo/ecommerce-tanstack-start-go/internal/apperrors"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,6 +69,66 @@ func TestServiceGetUserByID(t *testing.T) {
 		assert.ErrorIs(t, err, dbErr)
 		assert.EqualValues(t, repo.GetUserByIDRow{}, user)
 
+		mockRepo.AssertExpectations(t)
+	})
+}
+
+func TestServiceRegisterUser(t *testing.T) {
+	ctx := context.Background()
+	mockRepo := new(mocks.MockQuerier)
+	userService := NewService(mockRepo)
+
+	params := dto.CreateUserParams{
+		Username: "user",
+		Email:    "user@mail.com",
+		Password: "supersecret",
+	}
+	expectedUser := repo.RegisterUserRow{
+		ID:        pgtype.UUID{Bytes: [16]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, Valid: true},
+		Username:  "user",
+		Email:     "user@mail.com",
+		Role:      "user",
+		CreatedAt: pgtype.Timestamptz{},
+	}
+
+	t.Run("should return user when registration is successful", func(t *testing.T) {
+		mockRepo.On("RegisterUser", ctx, repo.RegisterUserParams{
+			Username: params.Username,
+			Email:    params.Email,
+			Password: params.Password,
+		}).Return(expectedUser, nil).Once()
+
+		user, err := userService.RegisterUser(ctx, params)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedUser, user)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return ErrUserAlreadyExists on unique violation", func(t *testing.T) {
+		pgErr := &pgconn.PgError{Code: "23505"}
+		mockRepo.On("RegisterUser", ctx, repo.RegisterUserParams{
+			Username: params.Username,
+			Email:    params.Email,
+			Password: params.Password,
+		}).Return(repo.RegisterUserRow{}, pgErr).Once()
+
+		user, err := userService.RegisterUser(ctx, params)
+		assert.ErrorIs(t, err, apperrors.ErrUserAlreadyExists)
+		assert.EqualValues(t, repo.RegisterUserRow{}, user)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when repo fails with other error", func(t *testing.T) {
+		dbErr := errors.New("db unavailable")
+		mockRepo.On("RegisterUser", ctx, repo.RegisterUserParams{
+			Username: params.Username,
+			Email:    params.Email,
+			Password: params.Password,
+		}).Return(repo.RegisterUserRow{}, dbErr).Once()
+
+		user, err := userService.RegisterUser(ctx, params)
+		assert.ErrorIs(t, err, dbErr)
+		assert.EqualValues(t, repo.RegisterUserRow{}, user)
 		mockRepo.AssertExpectations(t)
 	})
 }

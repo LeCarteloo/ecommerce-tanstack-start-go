@@ -45,6 +45,7 @@ func (app *application) mount() http.Handler {
 	usersService := users.NewService(sqlcRepo)
 	usersHandler := users.NewHandler(usersService)
 	router.Get("/users/{userId}", usersHandler.GetUserByID)
+	router.Post("/users/register", usersHandler.RegisterUser)
 
 	return router
 }

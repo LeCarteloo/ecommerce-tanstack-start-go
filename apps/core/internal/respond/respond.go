@@ -20,3 +20,10 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(ErrorResponse{Message: message})
 }
+
+func Read[T any](request *http.Request, data *T) error {
+	decoder := json.NewDecoder(request.Body)
+	decoder.DisallowUnknownFields()
+
+	return decoder.Decode(data)
+}
